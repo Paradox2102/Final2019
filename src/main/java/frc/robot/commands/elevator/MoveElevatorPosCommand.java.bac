@@ -1,0 +1,87 @@
+package frc.robot.commands.elevator;
+
+import edu.wpi.first.wpilibj.command.Command;
+import frc.robot.Robot;
+import frc.robot.RobotMap;
+
+public class MoveElevatorPosCommand extends Command {
+  ElevatorLevel m_level;
+  double m_pos;
+  double m_power;
+  boolean m_up;
+  boolean m_stall;
+
+  public enum ElevatorLevel{
+    Level1, Level2, Level3, CargoAvoidanceLevel, IntakeLevel, ClimbHeight
+  };
+
+  public MoveElevatorPosCommand(ElevatorLevel level, double power) {
+    requires(Robot.m_elevatorSubsystem);
+
+    m_level = level;
+    m_power = power;
+  }
+
+  // Called just before this Command runs the first time
+  @Override
+  protected void initialize() {    
+    if(Robot.m_oi.hatchMode()){
+      if(m_level == ElevatorLevel.Level1){
+        m_pos = RobotMap.k_rocketHatchLevel1;
+      }else if(m_level == ElevatorLevel.Level2){
+        m_pos = RobotMap.k_rocketHatchLevel2;
+      }else if(m_level == ElevatorLevel.Level3){
+        m_pos = RobotMap.k_rocketHatchLevel3;
+      }
+    }else{
+      if(m_level == ElevatorLevel.Level1){
+        m_pos = RobotMap.k_rocketCargoLevel1;
+      }else if(m_level == ElevatorLevel.Level2){
+        m_pos = RobotMap.k_rocketCargoLevel2;
+      }else if(m_level == ElevatorLevel.Level3){
+        m_pos = RobotMap.k_rocketCargoLevel3;
+      }
+    }
+
+    if(m_level == ElevatorLevel.CargoAvoidanceLevel){
+      m_pos = RobotMap.k_elevatorIntakeAvoidHeight;
+    }
+
+    if(m_level == ElevatorLevel.IntakeLevel){
+      m_pos = RobotMap.k_elevatorIntakeHeight;
+    }
+
+    if(m_level == ElevatorLevel.ClimbHeight){
+      m_pos = RobotMap.k_climbHeight;
+    }
+
+    m_up = m_pos > Robot.m_elevatorSubsystem.getPosRelativeHome();
+
+    if(!m_up){
+      m_power = 0.5;
+    }
+
+    Robot.m_elevatorSubsystem.set(m_up ? m_power : -m_power);
+  }
+
+  // Called repeatedly when this Command is scheduled to run
+  @Override
+  protected void execute() {
+  }
+
+  // Make this return true when this Command no longer needs to run execute()
+  @Override
+  protected boolean isFinished() {
+    if(m_up){
+      return Robot.m_elevatorSubsystem.getPosRelativeHome() > m_pos;
+    }else{
+      return Robot.m_elevatorSubsystem.getPosRelativeHome() < m_pos;
+    }
+  }
+
+  // Called once after isFinished returns true
+  @Override
+  protected void end() {
+    Robot.m_elevatorSubsystem.stop();
+  }
+}
